@@ -1,0 +1,7 @@
+# Python 3.11 recommended
+# GPU version for NVIDIA CUDA 12.x (Windows)
+numpy>=1.26,<3
+cupy-cuda12x[ctk]>=13,<15
+Pillow>=10,<13
+tqdm>=4.66,<5
+matplotlib>=3.8,<4
