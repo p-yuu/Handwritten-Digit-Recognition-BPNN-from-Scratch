@@ -50,7 +50,11 @@ python -m pip install -r requirements.txt
 python -c "import numpy, cupy, PIL, tqdm, matplotlib; print('Dependencies OK')"
 ```
 
-## 3. 模型與訓練流程
+## 3. 相關設定
+- `png_to_idx.py`：
+    - 設定 INPUT_MODE 為 'auto', 'folders', or 'txt'
+
+## 4. 模型與訓練流程
 
 目前 BPNN 架構為 `784 → Hidden → 10`：
 

@@ -35,20 +35,20 @@ experiments = [
 
 
 def main():
-    X = load_images(DATA_DIR / "train-images.idx3-ubyte")
-    y = load_labels(DATA_DIR / "train-labels.idx1-ubyte")
+    X = load_images("train-images.idx3-ubyte", DATA_DIR)
+    y = load_labels("train-labels.idx1-ubyte", DATA_DIR)
 
-    X = preprocess_images(X)
-    y = one_hot_encode(y)
+    X = preprocess_images(X)            # 影像前處理
+    num_classes = int(np.max(y)) + 1    # 取得類別數量
+    X_train, X_val, y_train, y_val = train_validation_split(X, y, val_ratio=0.2, seed=42)   # 切分
+    y_train = one_hot_encode(y_train, num_classes)
+    y_val = one_hot_encode(y_val, num_classes)
 
-    # 拆分 train, val
-    val_size = max(1, int(len(X) * 0.1))
-    X_train, X_val, y_train, y_val = train_validation_split(X, y, val_size=val_size, seed=42)
-
-    print(f"\nDataset: {DATASET}")
-    print(f"Total samples: {len(X)}")
-    print(f"Training samples: {len(X_train)}")
-    print(f"Validation samples: {len(X_val)}")
+    print("Number of classes:", num_classes)
+    print("X_train:", X_train.shape)
+    print("X_val:", X_val.shape)
+    print("y_train:", y_train.shape)
+    print("y_val:", y_val.shape)
 
     results = []
     best_accuracy = -1.0
@@ -61,7 +61,7 @@ def main():
             f"LR={config['lr']} | Hidden={config['hidden']} | Epochs={config['epochs']} | Batch={config['batch']}"
         )
 
-        model = NeuralNetwork(input_size=784,hidden_size=config["hidden"],output_size=10,seed=42,device="gpu")
+        model = NeuralNetwork(input_size=X_train.shape[1],hidden_size=config["hidden"],output_size=num_classes,seed=42,device="gpu")
         np.random.seed(42)
         model.xp.random.seed(42)
 
@@ -136,33 +136,33 @@ def main():
 
 
     # test dataset 評估
-    print("\n===== FINAL TEST EVALUATION =====")
-    X_test = load_images(DATA_DIR / "t10k-images.idx3-ubyte")
-    y_test = load_labels(DATA_DIR / "t10k-labels.idx1-ubyte")
+    # print("\n===== FINAL TEST EVALUATION =====")
+    # X_test = load_images(DATA_DIR / "t10k-images.idx3-ubyte")
+    # y_test = load_labels(DATA_DIR / "t10k-labels.idx1-ubyte")
 
-    X_test = preprocess_images(X_test)
-    y_test = one_hot_encode(y_test)
+    # X_test = preprocess_images(X_test)
+    # y_test = one_hot_encode(y_test)
 
-    best_model_path = MODELS_DIR / "best_model.npz"
+    # best_model_path = MODELS_DIR / "best_model.npz"
 
-    with np.load(best_model_path) as data:
-        input_size, hidden_size = data["W1"].shape
-        _, output_size = data["W2"].shape
+    # with np.load(best_model_path) as data:
+    #     input_size, hidden_size = data["W1"].shape
+    #     _, output_size = data["W2"].shape
 
-    best_model = NeuralNetwork(input_size=input_size,hidden_size=hidden_size,output_size=output_size,device="gpu")
-    best_model.load_model(best_model_path)
+    # best_model = NeuralNetwork(input_size=input_size,hidden_size=hidden_size,output_size=output_size,device="gpu")
+    # best_model.load_model(best_model_path)
 
-    test_loss, test_acc = best_model.evaluate_metrics(X_test,y_test)
-    print(f"Best Experiment: {best_experiment}")
-    print(f"Test Loss: {test_loss:.4f}")
-    print(f"Test Accuracy: {test_acc * 100:.2f}%")
+    # test_loss, test_acc = best_model.evaluate_metrics(X_test,y_test)
+    # print(f"Best Experiment: {best_experiment}")
+    # print(f"Test Loss: {test_loss:.4f}")
+    # print(f"Test Accuracy: {test_acc * 100:.2f}%")
 
-    test_result_path = RESULTS_DIR / "final_test_results.csv"
-    with open(test_result_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["best_experiment","validation_accuracy","test_loss","test_accuracy"])
-        writer.writerow([best_experiment,best_accuracy,test_loss,test_acc])
-    print(f"Final test results saved to: {test_result_path}")
+    # test_result_path = RESULTS_DIR / "final_test_results.csv"
+    # with open(test_result_path, "w", newline="") as f:
+    #     writer = csv.writer(f)
+    #     writer.writerow(["best_experiment","validation_accuracy","test_loss","test_accuracy"])
+    #     writer.writerow([best_experiment,best_accuracy,test_loss,test_acc])
+    # print(f"Final test results saved to: {test_result_path}")
 
 if __name__ == "__main__":
     main()

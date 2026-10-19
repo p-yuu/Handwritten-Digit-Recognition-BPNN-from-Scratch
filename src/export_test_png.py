@@ -26,7 +26,7 @@ with open(DATA_DIR / "t10k-labels.idx1-ubyte", "rb") as f:
     labels = np.frombuffer(f.read(), dtype=np.uint8)
 
 # Export first 100 images
-num_images = 100
+num_images = 10000
 
 with open(OUTPUT_DIR / "ground_truth.txt", "w") as f:
     for i in range(num_images):

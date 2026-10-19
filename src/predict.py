@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import json
 
 from neural_network import NeuralNetwork
 
@@ -11,7 +12,8 @@ from neural_network import NeuralNetwork
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEST_DIR = BASE_DIR / "data" / "test_images"
 MODEL_DIR = BASE_DIR / "outputs" / "models"
-MODEL_PATH = MODEL_DIR / "best_model_mnist.npz"      # None：自動選擇使用最新的模型
+MODEL_PATH = MODEL_DIR / "best_model_ta.npz"      # None：自動選擇使用最新的模型
+MAPPING_PATH = BASE_DIR / "data" / "converted" / "label_mapping.json"
 OUTPUT_PATH = BASE_DIR / "outputs" / "411385019.txt"
 
 DEVICE = "gpu"
@@ -32,6 +34,24 @@ def load_trained_model(model_path, device="gpu"):       # 查看 network 架構�
     model.load_model(model_path)
 
     return model
+
+
+def load_label_mapping(mapping_path):   # {"A": 0, "B": 1, "C": 2} -> {0: "A", 1: "B", 2: "C"}
+    if not mapping_path.is_file():
+        raise FileNotFoundError(f"Label mapping not found: {mapping_path}")
+
+    with mapping_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    label_to_index = data["label_to_index"]
+
+    index_to_label = {
+        int(index): label
+        for label, index in label_to_index.items()
+    }
+
+    return index_to_label
+
 
 def load_test_images(folder):
     folder = Path(folder)
@@ -76,14 +96,14 @@ def predict_images(model, X, batch_size=256):
     return predictions
 
 
-def find_latest_model(model_dir):
-    model_dir = Path(model_dir)
-    model_paths = list(model_dir.glob("*.npz"))
+# def find_latest_model(model_dir):
+#     model_dir = Path(model_dir)
+#     model_paths = list(model_dir.glob("*.npz"))
 
-    if not model_paths:
-        raise FileNotFoundError(f"No model files found in {model_dir}")
+#     if not model_paths:
+#         raise FileNotFoundError(f"No model files found in {model_dir}")
 
-    return max(model_paths, key=lambda p: p.stat().st_mtime)
+#     return max(model_paths, key=lambda p: p.stat().st_mtime)
 
 
 def main():
@@ -99,8 +119,27 @@ def main():
     # 載入 test 圖片
     X_test, image_paths = load_test_images(TEST_DIR)
 
+    if MAPPING_PATH is not None:
+        index_to_label = load_label_mapping(MAPPING_PATH)
+        output_size = model.W2.shape[1]
+        expected_indices = set(range(output_size))
+        mapping_indices = set(index_to_label)
+
+        if mapping_indices != expected_indices:
+            missing = sorted(expected_indices - mapping_indices)
+            unexpected = sorted(mapping_indices - expected_indices)
+            raise ValueError(
+                f"Label mapping {MAPPING_PATH} does not match model {model_path}: "
+                f"the model outputs {output_size} classes, but the mapping is missing "
+                f"indices {missing} and has unexpected indices {unexpected}. "
+                "Use the mapping generated from this model's training labels, or select "
+                "the matching model."
+            )
+
     # 預測
-    predictions = predict_images(model,X_test,batch_size=BATCH_SIZE)
+    predictions = predict_images(model, X_test, batch_size=BATCH_SIZE)
+    if MAPPING_PATH is not None:
+        predictions = [index_to_label[pred] for pred in predictions]
 
     # 寫檔
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

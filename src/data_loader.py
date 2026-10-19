@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
-def load_images(filename):
-    with open(DATA_DIR / filename, "rb") as f:
+def load_images(filename, data_dir=DATA_DIR):
+    with open(Path(data_dir) / filename, "rb") as f:
         magic, num_images, rows, cols = struct.unpack(">IIII", f.read(16))
 
         if magic != 2051:
@@ -20,8 +20,8 @@ def load_images(filename):
     return images
 
 
-def load_labels(filename):
-    with open(DATA_DIR / filename, "rb") as f:
+def load_labels(filename, data_dir=DATA_DIR):
+    with open(Path(data_dir) / filename, "rb") as f:
         magic, num_labels = struct.unpack(">II", f.read(8))
 
         if magic != 2049:
@@ -47,7 +47,12 @@ def show_images(images, labels, num_images=10):
     plt.tight_layout()
     plt.show()
 
-def one_hot_encode(labels, num_classes=10):
+def one_hot_encode(labels, num_classes=None):
+    if num_classes is None:
+        if len(labels) == 0:
+            raise ValueError("Cannot infer classes from empty labels")
+        num_classes = int(np.max(labels)) + 1
+
     return np.eye(num_classes, dtype=np.float32)[labels]
 
 def preprocess_images(images):
@@ -92,3 +97,18 @@ if __name__ == "__main__":
     print("Original label:", y_train[0])
     print("One-hot label:", y_train_onehot[0])
     print("One-hot shape:", y_train_onehot.shape)
+
+    print("\n===== Converted Dataset Test =====")
+
+    converted_dir = DATA_DIR / "converted"
+
+    X = load_images("train-images.idx3-ubyte", converted_dir)
+    y = load_labels("train-labels.idx1-ubyte", converted_dir)
+
+    X = preprocess_images(X)
+    y_onehot = one_hot_encode(y)
+
+    print("Images shape:", X.shape)
+    print("Labels shape:", y.shape)
+    print("One-hot shape:", y_onehot.shape)
+    print("Unique labels:", np.unique(y))
